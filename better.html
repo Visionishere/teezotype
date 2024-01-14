@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teezo Type Converter</title>
+<style>
+    @font-face {
+        font-family: 'Teezo';
+        src: url('normal.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #f5f5f5;
+    }
+
+    #teezo-title {
+        font-family: 'Teezo';
+        margin-bottom: 20px;
+    }
+
+    #text-input {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        background-color: #ffeb3b; /* darker sticky note color */
+        border: none;
+        padding: 10px;
+        width: 300px; /* default width */
+        height: 200px; /* default height */
+        font-size: 16px;
+        font-family: 'Teezo';
+        resize: none;
+        border-radius: 5px;
+    }
+
+    button {
+        margin: 5px;
+    }
+
+    #canvas-wrapper {
+        display: none;
+    }
+
+    .slider {
+        width: 300px;
+        margin-bottom: 10px;
+    }
+</style>
+</head>
+<body>
+
+<h1 id="teezo-title">Teezo Type</h1>
+<label for="font-slider">Font Size:</label>
+<input type="range" id="font-slider" class="slider" min="8" max="48" value="16">
+<label for="note-width-slider">Note Width:</label>
+<input type="range" id="note-width-slider" class="slider" min="100" max="800" value="300">
+<label for="note-height-slider">Note Height:</label>
+<input type="range" id="note-height-slider" class="slider" min="100" max="800" value="200"><br>
+
+<textarea id="text-input" placeholder="Type here..."></textarea><br>
+<button id="convert-button">Make Image</button>
+
+<div id="canvas-wrapper">
+    <canvas id="text-canvas" hidden></canvas>
+    <img id="text-image" src="" alt="Sticky Note Text" />
+</div>
+
+<script>
+    document.getElementById('convert-button').addEventListener('click', function() {
+        const textValue = document.getElementById('text-input').value;
+        const canvas = document.getElementById('text-canvas');
+        const ctx = canvas.getContext('2d');
+        const fontSize = document.getElementById('font-slider').value;
+
+        // Get user-selected note size
+        const noteWidth = document.getElementById('note-width-slider').value;
+        const noteHeight = document.getElementById('note-height-slider').value;
+
+        // Set canvas size based on user selection
+        canvas.width = noteWidth;
+        canvas.height = noteHeight;
+
+        // Draw the sticky note background with darker yellow color
+        ctx.fillStyle = '#ffeb3b';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Set font for text
+        ctx.fillStyle = '#000'; // text color
+        ctx.font = `${fontSize}px Teezo`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        // Wrap text and draw it line by line
+        const lineHeight = Math.floor(fontSize * 1.4); // Approximately 1.4 times the font size
+        const lines = wrapText(ctx, textValue, 10, 10, canvas.width - 20, lineHeight);
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, 10, 10 + (lineHeight * index));
+        });
+
+        // Convert canvas to image and download
+        canvas.toBlob(function(blob){
+            const newImg = document.createElement('a');
+            newImg.download = 'teezo_note.png';
+            newImg.href = URL.createObjectURL(blob);
+            newImg.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }, 'image/png');
+        
+        document.getElementById('canvas-wrapper').style.display = 'block';
+    });
+
+    // Update textarea and canvas size when the note size sliders change
+    document.getElementById('note-width-slider').addEventListener('input', function() {
+        const newWidth = document.getElementById('note-width-slider').value;
+        document.getElementById('text-input').style.width = `${newWidth}px`;
+    });
+    document.getElementById('note-height-slider').addEventListener('input', function() {
+        const newHeight = document.getElementById('note-height-slider').value;
+        document.getElementById('text-input').style.height = `${newHeight}px`;
+    });
+
+    // Update font size of the textarea when the font size slider changes
+    document.getElementById('font-slider').addEventListener('input', function() {
+        const newFontSize = document.getElementById('font-slider').value;
+        document.getElementById('text-input').style.fontSize = `${newFontSize}px`;
+    });
+
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        const lines = [];
+
+        for(let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = context.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                lines.push(line);
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+
+        lines.push(line);
+        return lines;
+    }
+</script>
+
+</body>
+</html>
